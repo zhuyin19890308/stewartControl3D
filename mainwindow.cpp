@@ -1,0 +1,564 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+//全局日志变量
+QFile *logFile;
+bool isLog;
+extern float leg[6];
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    //软件运行后开始计时
+    appRunStart = new QElapsedTimer;
+    appRunStart->start();
+    this->setWindowTitle("Stewart Control 3D");
+
+    ui->setupUi(this);
+    setEmergencySwitchPos(nullptr);
+    initConnects(0);
+    initLogFuction();
+    initMainWindow();//初始化窗口
+    initConnects(2);
+    testdll();
+    //test3D2();
+
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::initMainWindow()
+{
+    initStatusBar();
+    setMode();
+}
+
+bool MainWindow::setMode()
+{
+    const QString dlgTitle = "模式选择";
+    const QString strInfo = "请选择运行模式，区别详见说明文档。";
+    const QString regularMode = "常规模式";
+    const QString debugMode   = "调试模式";
+
+    QMessageBox appModeSet(QMessageBox::Question, dlgTitle, strInfo);
+    appModeSet.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    appModeSet.setButtonText(QMessageBox::Yes, regularMode);
+    appModeSet.setButtonText(QMessageBox::No, debugMode);
+
+    int result  = appModeSet.exec();
+
+
+    if(result == QMessageBox::Yes)
+    {
+        isDebugMode = false;//进入常规模式
+    }
+    else if(result == QMessageBox::No)
+    {
+        isDebugMode = true;//进入调试模式
+        debugView();
+    }
+    else
+    {
+        NULL;
+    }
+
+    return isDebugMode;
+}
+
+void MainWindow::initStatusBar()
+{
+    QStatusBar* bar = statusBar();
+    ui->statusBar->showMessage(tr("欢迎使用运动平台控制上位机软件"), 20000);
+    //添加时间状态栏
+    platformStatusLabel = new QLabel;
+    incomeDataStatusLabel = new QLabel;
+    platformStatusLabel->setText("平台未连接");
+    incomeDataStatusLabel->setText("未收到运动指令");
+    platformStatusLabel->setMinimumWidth(150);
+    incomeDataStatusLabel->setMinimumWidth(150);
+    bar->addPermanentWidget(platformStatusLabel);
+    bar->addPermanentWidget(incomeDataStatusLabel);
+    runTimeLable = new QLabel;
+    bar->addPermanentWidget(runTimeLable);
+    //更新时间功能
+    appRunTimeUpdate = new QTimer;
+    connect(appRunTimeUpdate, &QTimer::timeout, [ = ]()mutable
+    {
+        QString str = formatTime(appRunStart->elapsed());
+
+        //这里处理QTableWidget的log自动清除功能
+        static int clearLog = 0;
+        clearLog++;
+
+        if(clearLog % 60 == 0)
+        {
+            clearLog = 0;
+            emit clearLogWindow();
+        }
+        runTimeLable->setText("软件运行时间：" + str);
+    });
+
+    connect(appRunTimeUpdate, &QTimer::timeout, [ = ]()mutable
+    {
+        //TODO:
+        //这边可以添加temporaryLabel_1，temporaryLabel_2的更新内容
+    });
+    appRunTimeUpdate->start(1000);
+}
+
+
+
+QString MainWindow::formatTime(int ms)
+{
+    int ss = 1000;
+    int mi = ss * 60;
+    int hh = mi * 60;
+    int dd = hh * 24;
+
+    long day = ms / dd;
+    long hour = (ms - day * dd) / hh;
+    long minute = (ms - day * dd - hour * hh) / mi;
+    long second = (ms - day * dd - hour * hh - minute * mi) / ss;
+    long milliSecond = ms - day * dd - hour * hh - minute * mi - second * ss;
+
+    QString hou = QString::number(hour, 10);
+    QString min = QString::number(minute, 10);
+    QString sec = QString::number(second, 10);
+    QString msec = QString::number(milliSecond, 10);
+
+    return hou + "小时:" + min + "分:" + sec + "秒" ;
+}
+
+
+void MainWindow::initConnects(int step)
+{
+    switch(step)
+    {
+    case 0:
+        connect(m_emergencySwitchBtn, SIGNAL(emitPos(QPoint*)), this, SLOT(setEmergencySwitchPos(QPoint*)));
+        connect(m_emergencySwitchBtn, SIGNAL(emitColor(QString)), this, SLOT(setEmergencySwitchColor(QString)));
+        connect(m_emergencySwitchBtn, &moveableBtn::emitEmergencyStop, this, &MainWindow::handleEmergencyStop);
+        connect(this, &MainWindow::setPermitted_x, this, &MainWindow::set_permitted_x);
+        connect(this, &MainWindow::setPermitted_y, this, &MainWindow::set_permitted_y);
+
+        //日志功能
+        connect(this, SIGNAL(log(QString)), this, SLOT(showLog(QString)));
+        connect(this, SIGNAL(log(QString, QString)), this, SLOT(showLog(QString, QString)));
+        break;
+
+    case 1:
+
+        break;
+
+    case 2:
+        connect(this, &MainWindow::clearLogWindow, this, &MainWindow::clearLog);
+        break;
+
+    default:
+        break;
+    }
+}
+
+void MainWindow::initLogFuction()
+{
+    //txt日志
+    QString exePath = QApplication::applicationDirPath();
+    QString logFilePath = QString("_Log_%1.txt").arg(QDateTime::currentDateTime().toString("yyyy_MM_dd ap h:m:s"));
+    logFile = new QFile(exePath + logFilePath);
+
+    //qtablewidget 日志
+    //区分颜色
+    ui->LogWidget->setAlternatingRowColors(true);
+    //设置表头
+    QTableWidgetItem* headerItem;
+    QStringList headerText;
+    headerText << QObject::tr("日志时间") << QObject::tr("输出来源") << QObject::tr("日志内容");
+    ui->LogWidget->setColumnCount(headerText.count());
+
+    for(int i = 0; i < ui->LogWidget->columnCount(); i++)
+    {
+        headerItem = new QTableWidgetItem(headerText.at(i));
+        QFont font = headerItem->font();
+        font.setBold(true);
+        font.setPointSize(9);//字体大小
+        headerItem->setFont(font);
+        ui->LogWidget->setHorizontalHeaderItem(i, headerItem);
+    }
+
+    ui->LogWidget->setColumnWidth(0, 120);
+    ui->LogWidget->setColumnWidth(1, 120);
+    ui->LogWidget->setColumnWidth(2, 240);
+}
+
+void MainWindow::set_permitted_x()
+{
+    permitted_x_value = this->rect().topRight().x() - 480;
+}
+
+void MainWindow::set_permitted_y()
+{
+    permitted_y_value = this->rect().bottomRight().y() - m_emergencySwitchBtn->height() - 30;
+}
+
+int MainWindow::get_permitted_x() const
+{
+    return permitted_x_value;
+}
+
+int MainWindow::get_permitted_y() const
+{
+    return permitted_y_value;
+}
+
+void MainWindow::showLog(QString str)
+{
+    QString logStr_time, logStr;
+    logStr = str;
+    logStr_time = getCurrentTime();
+    QTableWidgetItem *time, *info;
+
+//    //使用智能指针，当time，info这些内容不再被使用的时候，自动销毁其内存
+//    std::shared_ptr<QTableWidgetItem> itemLogTime, itemLogInfo;
+//    itemLogTime = std::make_shared<QTableWidgetItem>(time);
+//    itemLogTime = std::make_shared<QTableWidgetItem>(info);
+    time = new QTableWidgetItem();
+    info = new QTableWidgetItem();
+
+    if(ui->LogWidget != nullptr)
+    {
+        ui->LogWidget->insertRow(0);    //使用0，目的是将最新的日志顶在最上方
+        time->setText(logStr_time);
+        info->setText(logStr);
+        ui->LogWidget->setItem(0, 0, time);
+        ui->LogWidget->setItem(0, 2, info);
+    }
+}
+
+void MainWindow::showLog(QString locatFuc, QString str)
+{
+    QString logStr_time;
+    logStr_time = getCurrentTime();
+    QTableWidgetItem *time, *locat, *info;
+
+    time = new QTableWidgetItem();
+    locat = new QTableWidgetItem();
+    info = new QTableWidgetItem();
+
+    if(ui->LogWidget != nullptr)
+    {
+        ui->LogWidget->insertRow(0);    //使用0，目的是将最新的日志顶在最上方
+        time->setText(logStr_time);
+        locat->setText(locatFuc);
+        info->setText(str);
+        ui->LogWidget->setItem(0, 0, time);
+        ui->LogWidget->setItem(0, 1, locat);
+        ui->LogWidget->setItem(0, 2, info);
+    }
+
+    return;
+}
+
+
+QString MainWindow::getCurrentTime()
+{
+    QString currentTime;
+    currentTime = QDateTime::currentDateTime().toString("yy-MM-dd hh:mm:ss");
+    return currentTime;
+}
+
+void MainWindow::clearLog()
+{
+    int logCounts = ui->LogWidget->rowCount();
+
+    for(int lineNum = logCounts; lineNum >= 0; lineNum--)
+    {
+        ui->LogWidget->removeRow(lineNum);
+    }
+}
+
+
+QPoint MainWindow::setEmergencySwitchPos(QPoint *pos)
+{
+    if(pos == nullptr)
+    {
+firstSetPos:
+
+        if(m_emergencySwitchBtn == nullptr)
+        {
+            if(ui->LogWidget == nullptr)
+            {
+                qDebug() << "NULL";
+            }
+
+            m_emergencySwitchBtn = new moveableBtn(this);//在此处新建急停按钮对象
+
+        }
+
+        m_emergencySwitchBtn->setFixedSize(50, 50);
+        m_emergencySwitchBtn->setStyleSheet("background-color:red");
+        QFont font;
+        font.setBold(true);
+        //font.
+        m_emergencySwitchBtn->raise();
+        m_emergencySwitchBtn->show();
+        m_emergencySwitchBtn->move(width() - m_emergencySwitchBtn->width() - 30, this->height() - m_emergencySwitchBtn->height() - 30);
+        m_emergencySwitchBtnPos = m_emergencySwitchBtn->pos();
+    }
+    else
+    {
+        if(m_emergencySwitchBtn == nullptr)
+        {
+            goto firstSetPos;
+        }
+        else
+        {
+            m_emergencySwitchBtn->move(pos->x(), pos->y());
+
+            //防止按钮移出父窗口，判断按钮左上和右下两个对角点的位置是否在规定范围内
+            //左上x
+            if(m_emergencySwitchBtn->mapToParent(m_emergencySwitchBtn->rect().topLeft()).x() <= get_permitted_x())
+            {
+                m_emergencySwitchBtn->move(get_permitted_x(), m_emergencySwitchBtn->pos().y());
+            }
+
+            //右下x
+            if(m_emergencySwitchBtn->mapToParent(m_emergencySwitchBtn->rect().bottomRight()).x() >= m_emergencySwitchBtn->parentWidget()->rect().width())
+            {
+                m_emergencySwitchBtn->move(m_emergencySwitchBtn->parentWidget()->rect().width() - m_emergencySwitchBtn->width(), m_emergencySwitchBtn->pos().y());
+            }
+
+            //左上y
+            if(m_emergencySwitchBtn->mapToParent(m_emergencySwitchBtn->rect().topLeft()).y() <= 0)
+            {
+                m_emergencySwitchBtn->move(m_emergencySwitchBtn->pos().x(), 0);
+            }
+
+            //右下y
+            if(m_emergencySwitchBtn->mapToParent(m_emergencySwitchBtn->rect().bottomRight()).y() >= get_permitted_y())
+            {
+                m_emergencySwitchBtn->move(m_emergencySwitchBtn->pos().x(), get_permitted_y());
+            }
+
+            /*//这种写法也可以
+            if(m_emergencySwitchBtn->mapToParent(m_emergencySwitchBtn->rect().bottomRight()).y() >= m_emergencySwitchBtn->parentWidget()->rect().height())
+            {
+                m_emergencySwitchBtn->move(m_emergencySwitchBtn->pos().x(), m_emergencySwitchBtn->parentWidget()->rect().height() - m_emergencySwitchBtn->height());
+            }
+            */
+        }
+    }
+
+    //返回当前按钮的位置信息
+    return m_emergencySwitchBtn->pos();
+}
+
+void MainWindow::setEmergencySwitchColor(QString color)
+{
+    m_emergencySwitchBtn->setStyleSheet(QString("background-color:%1").arg(color));
+}
+
+void MainWindow::handleEmergencyStop()
+{
+    //TODO:在此处添加急停功能
+    emit log(QString(__FUNCTION__), "Emergency Stop！");
+}
+
+int MainWindow::testdll()
+{
+    short sEcatSts;
+    // 指令返回值变量
+    short  sRtn;
+    // 打开运动控制器
+    sRtn = GTN_Open();
+    // 指令返回值检测
+    commandhandler("GTN_Open", sRtn);
+
+    if(sRtn)
+    {
+        printf("Failure to access cord!\n");
+        return -1;
+    }
+
+    // 初始化EtherCAT通讯配置
+    sRtn = GTN_InitEcatComm(1);
+    commandhandler("GTN_InitEcatComm", sRtn);
+
+    if(sRtn)
+    {
+        printf("EtherCAT communication error!\n");
+        return -1;
+    }
+
+    do  // 查询EtherCAT通讯是否准备好了
+    {
+        sRtn = GTN_IsEcatReady(1, &sEcatSts);
+    }
+    while(sEcatSts != 1 || sRtn != 0);
+
+    // 开始EtherCAT通讯
+    sRtn = GTN_StartEcatComm(1);
+    commandhandler("GTN_StartEcatComm", sRtn);
+    // 系统复位
+    sRtn = GTN_Reset(1);
+    commandhandler("GTN_Reset", sRtn);
+    // 关闭EtherCAT通讯
+    sRtn = GTN_TerminateEcatComm(1);
+    commandhandler("GTN_TerminateEcatComm", sRtn);
+    // 关闭运动控制器
+    sRtn = GTN_Close();
+    commandhandler("GTN_Close", sRtn);
+    return 0;
+}
+
+void MainWindow::debugView()
+{
+    if(!isDebugMode)
+    {
+        return;
+    }
+    else
+    {
+        View3DWidget = new QWidget();
+        Qt3DExtras::Qt3DWindow *view = new Qt3DExtras::Qt3DWindow();
+        view->defaultFrameGraph()->setClearColor(QColor(QRgb(0x4d4d4f)));
+        QWidget *container = QWidget::createWindowContainer(view);
+        QSize screenSize = view->screen()->size();
+        container->setMinimumSize(QSize(200, 100));
+        container->setMaximumSize(screenSize);
+        QHBoxLayout *hLayout = new QHBoxLayout(View3DWidget);
+        QVBoxLayout *vLayout = new QVBoxLayout();
+        vLayout->setAlignment(Qt::AlignTop);
+        hLayout->addWidget(container, 1);
+        hLayout->addLayout(vLayout);
+        //ui->horizontalLayout->addItem(hLayout);
+        // Root entity
+        Qt3DCore::QEntity *rootEntity = new Qt3DCore::QEntity();
+        // Camera
+        Qt3DRender::QCamera * cameraEntity;
+        cameraEntity = view->camera();
+
+
+        cameraEntity->lens()->setPerspectiveProjection(45.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+        cameraEntity->setPosition(QVector3D(0, 0, 20.0f));
+        cameraEntity->setUpVector(QVector3D(0, 1, 0));
+        cameraEntity->setViewCenter(QVector3D(0, 0, 0));
+
+        Qt3DCore::QEntity *lightEntity = new Qt3DCore::QEntity(rootEntity);
+        Qt3DRender::QPointLight *light = new Qt3DRender::QPointLight(lightEntity);
+        light->setColor("white");
+        light->setIntensity(1);
+        lightEntity->addComponent(light);
+        Qt3DCore::QTransform *lightTransform = new Qt3DCore::QTransform(lightEntity);
+        lightTransform->setTranslation(cameraEntity->position());
+        lightEntity->addComponent(lightTransform);
+
+        // For camera controls
+        Qt3DExtras::QFirstPersonCameraController *camController = new Qt3DExtras::QFirstPersonCameraController(rootEntity);
+        camController->setCamera(cameraEntity);
+
+        // Scenemodifier
+        SceneModifier *modifier = new SceneModifier(rootEntity);
+
+        // Set root object of the scene
+        view->setRootEntity(rootEntity);
+        modifier->enableCone(true);
+
+        ui->horizontalLayout->insertWidget(0, View3DWidget);
+        int windResizeWidth = ui->LogWidget->height();
+        this->resize(windResizeWidth + ui->LogWidget->width(), ui->LogWidget->height());
+
+    }
+
+}
+
+void MainWindow::test3D2()
+{
+    QQuickView *view = new QQuickView();
+
+    view->setSource(QUrl("_3dForm.ui.qml"));
+    view ->setResizeMode(QQuickView::SizeRootObjectToView);
+
+    QWidget *container = QWidget :: createWindowContainer(view, this);
+
+    //ui->horizontalLayout->addWidget(container);
+
+//    QSize screenSize = view->screen()->size();
+//    container->setMinimumSize(QSize(200, 100));
+//    container->setMaximumSize(screenSize);
+
+
+//    QHBoxLayout *hLayout = new QHBoxLayout(this);
+//    QVBoxLayout *vLayout = new QVBoxLayout();
+//    vLayout->setAlignment(Qt::AlignTop);
+//    hLayout->addWidget(container, 1);
+//    hLayout->addLayout(vLayout);
+
+
+}
+
+// 该函数检测某条GTN指令的执行结果，command为指令名称，error为指令执行返回值
+void MainWindow::commandhandler(char *command, short error)
+{
+    // 如果指令执行返回值为非0，说明指令执行错误，向屏幕输出错误结果
+    emit log(QString(__FUNCTION__), QString("%1 = %2").arg(command).arg(error));
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    //改变窗口尺寸后，急停按钮回到初始位置，并且与窗口边缘保持固定相对距离
+    setEmergencySwitchPos(nullptr);
+    emit setPermitted_x();
+    emit setPermitted_y();
+}
+
+
+/*---------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------以下为可移动按钮类---------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------------*/
+/*moveableBtn 可以移动的按钮类重写
+*
+*/
+
+moveableBtn::moveableBtn(QWidget* parent) : QPushButton(parent)
+{
+
+}
+
+void moveableBtn::mousePressEvent(QMouseEvent * event)
+{
+    if(event->button() == Qt::LeftButton)
+    {
+        emit emitColor("green");
+        emit emitEmergencyStop();
+        this->raise(); //将此按钮移动到顶层显示
+        this->pressPoint = event->pos();
+    }
+}
+
+void moveableBtn::mouseMoveEvent(QMouseEvent * event)
+{
+
+
+    if(event->buttons() == Qt::LeftButton)
+    {
+        QPoint* p;
+        p = new QPoint(this->mapToParent(event->pos() - this->pressPoint));
+    }
+
+    if(event->buttons() == Qt::RightButton)
+    {
+        QPoint* p;
+        p = new QPoint(this->mapToParent(event->pos() - this->pressPoint));
+        emit emitPos(p);
+    }
+}
+
+void moveableBtn::mouseReleaseEvent(QMouseEvent* event)
+{
+    emit emitColor("red");
+}
+

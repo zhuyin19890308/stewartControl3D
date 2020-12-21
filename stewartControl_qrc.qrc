@@ -1,0 +1,4 @@
+<RCC>
+    <qresource prefix="/obj"/>
+    <qresource prefix="/"/>
+</RCC>

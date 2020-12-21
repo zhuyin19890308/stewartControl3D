@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>693</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>480</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>stewartControl</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="spacing">
+       <number>7</number>
+      </property>
+      <item>
+       <widget class="QTableWidget" name="LogWidget">
+        <property name="maximumSize">
+         <size>
+          <width>480</width>
+          <height>16777215</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>480</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>文件</string>
+    </property>
+    <addaction name="actionImportIni"/>
+    <addaction name="actionExportIni"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuConnect">
+    <property name="title">
+     <string>连接</string>
+    </property>
+    <addaction name="actionConnect"/>
+    <addaction name="actionDisconnect"/>
+    <addaction name="separator"/>
+    <addaction name="actionStewartTest"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>帮助</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>设置</string>
+    </property>
+    <widget class="QMenu" name="menuAlgorithm">
+     <property name="title">
+      <string>算法</string>
+     </property>
+     <addaction name="actionWashOut"/>
+     <addaction name="actionFilter"/>
+     <addaction name="actionBackward"/>
+     <addaction name="actionForward"/>
+    </widget>
+    <widget class="QMenu" name="menu">
+     <property name="title">
+      <string>通信</string>
+     </property>
+     <addaction name="actionIP"/>
+     <addaction name="actionPORT"/>
+     <addaction name="separator"/>
+     <addaction name="actionRead"/>
+     <addaction name="actionOutPut"/>
+     <addaction name="separator"/>
+    </widget>
+    <addaction name="menuAlgorithm"/>
+    <addaction name="separator"/>
+    <addaction name="menu"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuConnect"/>
+   <addaction name="menuSettings"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionWashOut">
+   <property name="text">
+    <string>洗出</string>
+   </property>
+  </action>
+  <action name="actionFilter">
+   <property name="text">
+    <string>滤波</string>
+   </property>
+  </action>
+  <action name="actionBackward">
+   <property name="text">
+    <string>反解</string>
+   </property>
+  </action>
+  <action name="actionForward">
+   <property name="text">
+    <string>正解</string>
+   </property>
+  </action>
+  <action name="actionStewartTest">
+   <property name="text">
+    <string>平台测试</string>
+   </property>
+  </action>
+  <action name="actionRead">
+   <property name="text">
+    <string>读取</string>
+   </property>
+  </action>
+  <action name="actionOutPut">
+   <property name="text">
+    <string>发送</string>
+   </property>
+  </action>
+  <action name="actionIP">
+   <property name="text">
+    <string>IP</string>
+   </property>
+  </action>
+  <action name="actionPORT">
+   <property name="text">
+    <string>PORT</string>
+   </property>
+  </action>
+  <action name="actionConnect">
+   <property name="text">
+    <string>连接平台</string>
+   </property>
+  </action>
+  <action name="actionDisconnect">
+   <property name="text">
+    <string>断开平台</string>
+   </property>
+  </action>
+  <action name="actionImportIni">
+   <property name="text">
+    <string>导入配置</string>
+   </property>
+  </action>
+  <action name="actionExportIni">
+   <property name="text">
+    <string>备份配置</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>退出</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>
