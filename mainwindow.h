@@ -165,6 +165,7 @@ private:
         DebugMode
     };
 
+    std::shared_ptr<FanSocket::FSocket*> ptr;
     FanSocket::SocketFactory socketFactory;
     FanSocket::FSocket *m_Udp = 0;
 

@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     initConnects(2);
     testdll();
     m_Udp = initNetwork();
+    
     //test3D2();
 
 }
@@ -199,6 +200,7 @@ FanSocket::FSocket *MainWindow::initNetwork()
 {
     FanSocket::FSocket *newUdp = socketFactory.CreateSocket("udp");
     ptr = std::make_shared<FanSocket::FSocket*>(newUdp);
+    newUdp->InitLocalReceive(60911);
     return newUdp;
 }
 
