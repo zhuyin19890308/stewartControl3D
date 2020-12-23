@@ -26,7 +26,6 @@ private:
 public:
     FSocket *CreateSocket(QString);
 
-
 };
 }
 #endif // SOCKETFACTORY_H

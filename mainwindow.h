@@ -21,6 +21,7 @@
 #include <QMessageBox>
 #include <QSizePolicy>
 #include <socketfactory.h>
+#include <memory>
 
 
 //Qt 3D功能
@@ -100,12 +101,13 @@ public slots:
     bool setMode();
     void initStatusBar();
 
-
-
     QString formatTime(int ms);
 
     void initConnects(int step);
     void initLogFuction();
+
+    FanSocket::FSocket * initNetwork();
+
 
     void set_permitted_x();
     void set_permitted_y();
@@ -163,7 +165,7 @@ private:
         DebugMode
     };
 
-
+    FanSocket::SocketFactory socketFactory;
     FanSocket::FSocket *m_Udp = 0;
 
 protected:

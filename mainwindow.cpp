@@ -194,6 +194,15 @@ void MainWindow::initLogFuction()
     ui->LogWidget->setColumnWidth(2, 240);
 }
 
+FanSocket::FSocket *MainWindow::initNetwork()
+{
+    std::shared_ptr<FanSocket::FSocket*> ptr;
+    FanSocket::FSocket *newUdp = socketFactory.CreateSocket("udp");
+    ptr = std::make_shared<FanSocket::FSocket*>(newUdp);
+    return newUdp;
+
+}
+
 void MainWindow::set_permitted_x()
 {
     permitted_x_value = this->rect().topRight().x() - 480;

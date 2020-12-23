@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.13.3, 2020-12-20T18:11:08. -->
+<!-- Written by QtCreator 4.13.3, 2020-12-21T19:58:39. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -327,8 +327,9 @@
     <valuelist type="QVariantList" key="CustomOutputParsers"/>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:E:/job/6DOFPlatform/CODE/StewartControl3D/StewartControl3D.pro</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">E:/job/6DOFPlatform/CODE/StewartControl3D/StewartControl3D.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">StewartControl3D2</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:E:/job/6DOFPlatform/CODE/StewartControl3DRepository/stewartControl3D/StewartControl3D.pro</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">E:/job/6DOFPlatform/CODE/StewartControl3DRepository/stewartControl3D/StewartControl3D.pro</value>
     <value type="QString" key="RunConfiguration.Arguments"></value>
     <value type="bool" key="RunConfiguration.Arguments.multi">false</value>
     <value type="QString" key="RunConfiguration.OverrideDebuggerStartup"></value>

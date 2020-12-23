@@ -59,7 +59,7 @@ typedef struct  sixDegreeData
     uchar testControlTime;  //测试控制时间标志位
     uchar testResponseTime; //测试响应时间标志位
     uchar flag_AccTest;     //加速度测试标志位,置1时表示测试加速度，正常状态为0
-} SixData;
+} stewartControlData;
 //Q_DECLARE_METATYPE(SixData)
 
 typedef struct HeadInfo //报头
@@ -132,7 +132,41 @@ typedef struct  gunnerData
 
 } gunnerData;
 
+typedef  struct platformPara
+{
+    float r_up;
+    float r_down;
+    float h_zero;
+    float h_mid;
+    float s_up_jiaodian;
+    float s_down_jiaodian;
 
+    void defaultPlatformPara()
+    {
+        r_up              = 442.89;
+        r_down            = 760;
+        h_zero            = 618.3;
+        h_mid             = 768.3;
+        s_up_jiaodian     = 101;
+        s_down_jiaodian   = 250;
+    }
+    bool operator == (const platformPara &v) const
+    {
+        if(r_up == v.r_up &&
+                r_down == v.r_down &&
+                h_zero == v.h_zero &&
+                h_mid == v.h_mid &&
+                s_up_jiaodian == v.s_up_jiaodian &&
+                s_down_jiaodian == v.s_down_jiaodian)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+} platformPara;
 
 #pragma pack()
 
